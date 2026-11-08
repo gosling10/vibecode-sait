@@ -75,11 +75,6 @@ function formatDay(dateStr) {
     return days[date.getDay()];
 }
 
-function formatTime(isoString) {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-}
-
 // ===== Поиск города через Nominatim =====
 async function searchCity(query) {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&accept-language=ru`;
