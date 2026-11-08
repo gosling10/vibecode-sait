@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Прогноз погоды</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="header__title">🌤 Прогноз погоды</h1>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <section class="search">
+                <form class="search__form" id="search-form">
+                    <input type="text" id="city-input" class="search__input" placeholder="Введите город..." autocomplete="off">
+                    <button type="submit" class="search__btn">🔍 Найти</button>
+                    <button type="button" id="geo-btn" class="search__geo-btn" title="Моё местоположение">📍</button>
+                </form>
+                <p class="search__error" id="error-message"></p>
+            </section>
+
+            <section class="current-weather" id="current-weather" style="display: none;">
+                <div class="current-weather__header">
+                    <h2 class="current-weather__city" id="city-name"></h2>
+                    <p class="current-weather__date" id="weather-date"></p>
+                </div>
+                <div class="current-weather__main">
+                    <div class="current-weather__icon" id="weather-icon"></div>
+                    <div class="current-weather__temp">
+                        <span class="temp-value" id="temperature"></span>
+                        <span class="temp-unit">°C</span>
+                    </div>
+                </div>
+                <p class="current-weather__description" id="weather-description"></p>
+                <div class="current-weather__details">
+                    <div class="detail">
+                        <span class="detail__icon">💧</span>
+                        <span class="detail__label">Влажность</span>
+                        <span class="detail__value" id="humidity"></span>
+                    </div>
+                    <div class="detail">
+                        <span class="detail__icon">💨</span>
+                        <span class="detail__label">Ветер</span>
+                        <span class="detail__value" id="wind"></span>
+                    </div>
+                    <div class="detail">
+                        <span class="detail__icon">🌡️</span>
+                        <span class="detail__label">Ощущается</span>
+                        <span class="detail__value" id="feels-like"></span>
+                    </div>
+                    <div class="detail">
+                        <span class="detail__icon">☁️</span>
+                        <span class="detail__label">Облачность</span>
+                        <span class="detail__value" id="clouds"></span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="forecast" id="forecast" style="display: none;">
+                <h2 class="forecast__title">Прогноз на 7 дней</h2>
+                <div class="forecast__grid" id="forecast-grid"></div>
+            </section>
+
+            <section class="empty-state" id="empty-state">
+                <div class="empty-state__icon">🌍</div>
+                <h3>Введите город для прогноза погоды</h3>
+                <p>Или используйте геолокацию для определения вашего местоположения</p>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>Данные предоставлены Open-Meteo API</p>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
