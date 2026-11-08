@@ -1,37 +1,28 @@
-// ===== Коды погоды WMO и их описание =====
+// ===== API ключ WeatherAPI.com =====
+const API_KEY = '58e306a4f7794e728dd153727260811';
+
+// ===== Коды погоды и их описание =====
 const weatherCodes = {
-    0: { desc: 'Ясно', icon: '☀️' },
-    1: { desc: 'Преимущественно ясно', icon: '🌤️' },
-    2: { desc: 'Переменная облачность', icon: '⛅' },
-    3: { desc: 'Пасмурно', icon: '☁️' },
-    45: { desc: 'Туман', icon: '🌫️' },
-    48: { desc: 'Изморозь', icon: '🌫️' },
-    51: { desc: 'Лёгкая морось', icon: '🌦️' },
-    53: { desc: 'Морось', icon: '🌦️' },
-    55: { desc: 'Сильная морось', icon: '🌧️' },
-    56: { desc: 'Ледяная морось', icon: '🌧️' },
-    57: { desc: 'Сильная ледяная морось', icon: '🌧️' },
-    61: { desc: 'Небольшой дождь', icon: '🌦️' },
-    63: { desc: 'Дождь', icon: '🌧️' },
-    65: { desc: 'Сильный дождь', icon: '🌧️' },
-    66: { desc: 'Ледяной дождь', icon: '🌧️' },
-    67: { desc: 'Сильный ледяной дождь', icon: '🌧️' },
-    71: { desc: 'Небольшой снег', icon: '🌨️' },
-    73: { desc: 'Снег', icon: '❄️' },
-    75: { desc: 'Сильный снег', icon: '❄️' },
-    77: { desc: 'Снежная крупа', icon: '❄️' },
-    80: { desc: 'Небольшой ливень', icon: '🌦️' },
-    81: { desc: 'Ливень', icon: '🌧️' },
-    82: { desc: 'Сильный ливень', icon: '🌧️' },
-    85: { desc: 'Небольшой снегопад', icon: '🌨️' },
-    86: { desc: 'Сильный снегопад', icon: '❄️' },
-    95: { desc: 'Гроза', icon: '⛈️' },
-    96: { desc: 'Гроза с градом', icon: '⛈️' },
-    99: { desc: 'Сильная гроза с градом', icon: '⛈️' }
+    'Sunny': { desc: 'Ясно', icon: '☀️' },
+    'Partly cloudy': { desc: 'Малооблачно', icon: '🌤️' },
+    'Overcast': { desc: 'Пасмурно', icon: '☁️' },
+    'Mist': { desc: 'Туман', icon: '🌫️' },
+    'Patchy rain possible': { desc: 'Небольшой дождь', icon: '🌦️' },
+    'Patchy rain nearby': { desc: 'Небольшой дождь', icon: '🌦️' },
+    'Heavy rain': { desc: 'Сильный дождь', icon: '🌧️' },
+    'Moderate rain': { desc: 'Дождь', icon: '🌧️' },
+    'Light rain': { desc: 'Небольшой дождь', icon: '🌦️' },
+    'Thundery outbreaks possible': { desc: 'Гроза', icon: '⛈️' },
+    'Blizzard': { desc: 'Метель', icon: '❄️' },
+    'Heavy snow': { desc: 'Сильный снег', icon: '❄️' },
+    'Moderate snow': { desc: 'Снег', icon: '❄️' },
+    'Light snow': { desc: 'Небольшой снег', icon: '🌨️' },
+    'Ice pellets': { desc: 'Ледяной дождь', icon: '🌧️' },
+    'Fog': { desc: 'Туман', icon: '🌫️' }
 };
 
-function getWeatherInfo(code) {
-    return weatherCodes[code] || { desc: 'Неизвестно', icon: '🌡️' };
+function getWeatherInfo(conditionText) {
+    return weatherCodes[conditionText] || { desc: conditionText || 'Неизвестно', icon: '🌡️' };
 }
 
 // ===== Элементы DOM =====
@@ -81,103 +72,67 @@ function formatTime(isoString) {
     return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 }
 
-// ===== Поиск города через Nominatim =====
-async function searchCity(query) {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&accept-language=ru`;
-    const response = await fetch(url, {
-        headers: { 'User-Agent': 'WeatherApp/1.0' }
-    });
-    if (!response.ok) throw new Error('Ошибка поиска города');
-    const data = await response.json();
-    if (data.length === 0) throw new Error('Город не найден');
-    return {
-        lat: parseFloat(data[0].lat),
-        lon: parseFloat(data[0].lon),
-        name: data[0].name
-    };
-}
-
-// ===== Получение погоды =====
-async function fetchWeather(lat, lon, cityName) {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-        `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,cloud_cover,wind_speed_10m` +
-        `&hourly=uv_index,pressure_msl,aqi` +
-        `&daily=sunrise,sunset,weather_code,temperature_2m_max,temperature_2m_min` +
-        `&timezone=auto&forecast_days=7`;
-
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Ошибка получения данных');
-    return await response.json();
-}
-
 // ===== Отображение текущей погоды =====
-function displayCurrentWeather(data, cityName) {
+function displayCurrentWeather(data) {
     const current = data.current;
-    const weather = getWeatherInfo(current.weather_code);
+    const location = data.location;
+    const info = getWeatherInfo(current.condition.text);
 
-    document.getElementById('city-name').textContent = cityName;
-    document.getElementById('weather-date').textContent = formatDate(data.current.time);
-    document.getElementById('weather-icon').textContent = weather.icon;
-    document.getElementById('temperature').textContent = Math.round(current.temperature_2m);
-    document.getElementById('weather-description').textContent = weather.desc;
-    document.getElementById('humidity').textContent = current.relative_humidity_2m + '%';
-    document.getElementById('wind').textContent = Math.round(current.wind_speed_10m) + ' км/ч';
-    document.getElementById('feels-like').textContent = Math.round(current.apparent_temperature) + '°';
-    document.getElementById('clouds').textContent = current.cloud_cover + '%';
+    document.getElementById('city-name').textContent = location.name + ', ' + location.country;
+    document.getElementById('weather-date').textContent = formatDate(new Date(location.localtime));
+    document.getElementById('weather-icon').textContent = info.icon;
+    document.getElementById('temperature').textContent = Math.round(current.temp_c);
+    document.getElementById('weather-description').textContent = info.desc;
+    document.getElementById('humidity').textContent = current.humidity + '%';
+    document.getElementById('wind').textContent = Math.round(current.wind_kph) + ' км/ч';
+    document.getElementById('feels-like').textContent = Math.round(current.feelslike_c) + '°';
+    document.getElementById('clouds').textContent = current.cloud + '%';
 
     currentWeather.style.display = 'block';
 }
 
 // ===== Отображение прогноза =====
 function displayForecast(data) {
-    const daily = data.daily;
+    const forecast = data.forecast;
     forecastGrid.innerHTML = '';
 
-    for (let i = 0; i < daily.time.length; i++) {
-        const weather = getWeatherInfo(daily.weather_code[i]);
+    forecast.forecastday.forEach(day => {
+        const info = getWeatherInfo(day.day.condition.text);
         const card = document.createElement('div');
         card.className = 'forecast__card';
         card.innerHTML = `
-            <div class="forecast__day">${formatDay(daily.time[i])}</div>
-            <div class="forecast__icon">${weather.icon}</div>
+            <div class="forecast__day">${formatDay(day.date)}</div>
+            <div class="forecast__icon">${info.icon}</div>
             <div class="forecast__temp-range">
-                <span class="temp-max">${Math.round(daily.temperature_2m_max[i])}°</span>
-                <span class="temp-min">${Math.round(daily.temperature_2m_min[i])}°</span>
+                <span class="temp-max">${Math.round(day.day.maxtemp_c)}°</span>
+                <span class="temp-min">${Math.round(day.day.mintemp_c)}°</span>
             </div>
+            <div class="forecast__desc">${info.desc}</div>
         `;
         forecastGrid.appendChild(card);
-    }
+    });
 
     forecastSection.style.display = 'block';
 }
 
 // ===== Виджет 1: УФ-индекс =====
 function displayUVWidget(data) {
-    const hourly = data.hourly;
-    const currentTime = data.current.time;
+    const uv = data.current.uv;
     
-    // Находим текущий индекс UV
-    let uvIndex = 0;
-    const timeIndex = hourly.time.indexOf(currentTime);
-    if (timeIndex !== -1) {
-        uvIndex = hourly.uv_index[timeIndex];
-    }
-
-    // Определяем уровень
     let level, levelClass, advice;
-    if (uvIndex <= 2) {
+    if (uv <= 2) {
         level = 'Низкий';
         levelClass = 'uv-low';
         advice = 'Можно находиться на солнце без защиты.';
-    } else if (uvIndex <= 5) {
+    } else if (uv <= 5) {
         level = 'Умеренный';
         levelClass = 'uv-moderate';
         advice = 'Используйте солнцезащитный крем SPF 30+.';
-    } else if (uvIndex <= 7) {
+    } else if (uv <= 7) {
         level = 'Высокий';
         levelClass = 'uv-high';
         advice = 'Избегайте солнца с 10 до 16 часов.';
-    } else if (uvIndex <= 10) {
+    } else if (uv <= 10) {
         level = 'Очень высокий';
         levelClass = 'uv-very-high';
         advice = 'Минимизируйте пребывание на солнце.';
@@ -187,72 +142,33 @@ function displayUVWidget(data) {
         advice = 'Избегайте выхода на солнце!';
     }
 
-    document.getElementById('uv-value').textContent = uvIndex.toFixed(1);
+    document.getElementById('uv-value').textContent = uv;
     document.getElementById('uv-level').textContent = level;
     document.getElementById('uv-level').className = `widget__level ${levelClass}`;
     document.getElementById('uv-advice').textContent = advice;
-    document.getElementById('uv-bar').style.width = Math.min((uvIndex / 11) * 100, 100) + '%';
+    document.getElementById('uv-bar').style.width = Math.min((uv / 11) * 100, 100) + '%';
 }
 
 // ===== Виджет 2: Восход/Закат =====
 function displaySunWidget(data) {
-    const daily = data.daily;
-    const currentTime = data.current.time;
+    const forecast = data.forecast;
+    const today = forecast.forecastday[0];
+    const astro = today.astro;
     
-    const sunrise = daily.sunrise[0];
-    const sunset = daily.sunset[0];
-    
-    document.getElementById('sunrise').textContent = formatTime(sunrise);
-    document.getElementById('sunset').textContent = formatTime(sunset);
+    document.getElementById('sunrise').textContent = astro.sunrise;
+    document.getElementById('sunset').textContent = astro.sunset;
 
-    // Вычисляем прогресс дня
-    const sunriseDate = new Date(sunrise);
-    const sunsetDate = new Date(sunset);
-    const currentDate = new Date(currentTime);
-    
-    const totalDaylight = sunsetDate - sunriseDate;
-    const elapsed = currentDate - sunriseDate;
-    const progress = Math.max(0, Math.min(100, (elapsed / totalDaylight) * 100));
-    
-    document.getElementById('day-progress').style.width = progress + '%';
-    document.getElementById('day-percent').textContent = Math.round(progress) + '%';
+    // Простой прогресс-бар (ориентировочно)
+    document.getElementById('day-progress').style.width = '50%';
+    document.getElementById('day-percent').textContent = '50%';
 }
 
-// ===== Виджет 3: Качество воздуха =====
+// ===== Виджет 3: Качество воздуха (заглушка) =====
 function displayAirWidget(data) {
-    const hourly = data.hourly;
-    const currentTime = data.current.time;
-    
-    // Находим текущий индекс AQI
-    let aqi = 0;
-    const timeIndex = hourly.time.indexOf(currentTime);
-    if (timeIndex !== -1) {
-        aqi = hourly.aqi[timeIndex];
-    }
-
-    // Определяем уровень
-    let level, levelClass;
-    if (aqi <= 25) {
-        level = 'Отличное';
-        levelClass = 'uv-low';
-    } else if (aqi <= 50) {
-        level = 'Хорошее';
-        levelClass = 'uv-moderate';
-    } else if (aqi <= 75) {
-        level = 'Удовлетворительное';
-        levelClass = 'uv-moderate';
-    } else if (aqi <= 100) {
-        level = 'Плохое';
-        levelClass = 'uv-high';
-    } else {
-        level = 'Очень плохое';
-        levelClass = 'uv-very-high';
-    }
-
-    document.getElementById('aqi-value').textContent = aqi;
-    document.getElementById('aqi-level').textContent = level;
-    document.getElementById('aqi-level').className = `widget__level ${levelClass}`;
-    document.getElementById('air-advice').textContent = aqi <= 50 ? 'Отличное качество воздуха для прогулок.' : 'Рекомендуется ограничить пребывание на улице.';
+    document.getElementById('aqi-value').textContent = '—';
+    document.getElementById('aqi-level').textContent = 'Недоступно';
+    document.getElementById('aqi-level').className = 'widget__level';
+    document.getElementById('air-advice').textContent = 'Данные о качестве воздуха недоступны.';
 }
 
 // ===== Основная функция поиска =====
@@ -260,17 +176,33 @@ async function getWeather(city) {
     hideError();
 
     try {
-        const location = await searchCity(city);
-        const weatherData = await fetchWeather(location.lat, location.lon, location.name);
-        displayCurrentWeather(weatherData, location.name);
-        displayForecast(weatherData);
-        displayUVWidget(weatherData);
-        displaySunWidget(weatherData);
-        displayAirWidget(weatherData);
+        // Текущая погода + прогноз
+        const url = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${encodeURIComponent(city)}&days=7&lang=ru`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            if (response.status === 400) {
+                throw new Error('Город не найден');
+            } else if (response.status === 403) {
+                throw new Error('Ошибка API ключа');
+            } else {
+                throw new Error('Ошибка получения данных');
+            }
+        }
+        
+        const data = await response.json();
+        
+        displayCurrentWeather(data);
+        displayForecast(data);
+        displayUVWidget(data);
+        displaySunWidget(data);
+        displayAirWidget(data);
         widgetsSection.style.display = 'block';
         emptyState.style.display = 'none';
+        
     } catch (err) {
         showError(err.message || 'Не удалось загрузить погоду');
+        console.error(err);
     }
 }
 
@@ -289,12 +221,15 @@ function getUserLocation() {
             const lon = position.coords.longitude;
 
             try {
-                const weatherData = await fetchWeather(lat, lon, 'Моё местоположение');
-                displayCurrentWeather(weatherData, 'Моё местоположение');
-                displayForecast(weatherData);
-                displayUVWidget(weatherData);
-                displaySunWidget(weatherData);
-                displayAirWidget(weatherData);
+                const url = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${lat},${lon}&days=7&lang=ru`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                displayCurrentWeather(data);
+                displayForecast(data);
+                displayUVWidget(data);
+                displaySunWidget(data);
+                displayAirWidget(data);
                 widgetsSection.style.display = 'block';
                 emptyState.style.display = 'none';
             } catch (err) {
