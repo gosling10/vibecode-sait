@@ -43,6 +43,7 @@ const emptyState = document.getElementById('empty-state');
 const currentWeather = document.getElementById('current-weather');
 const forecastSection = document.getElementById('forecast');
 const forecastGrid = document.getElementById('forecast-grid');
+const widgetsSection = document.getElementById('widgets');
 
 // ===== Показать ошибку =====
 function showError(msg) {
@@ -75,6 +76,11 @@ function formatDay(dateStr) {
     return days[date.getDay()];
 }
 
+function formatTime(isoString) {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+}
+
 // ===== Поиск города через Nominatim =====
 async function searchCity(query) {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&accept-language=ru`;
@@ -95,7 +101,8 @@ async function searchCity(query) {
 async function fetchWeather(lat, lon, cityName) {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
         `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,cloud_cover,wind_speed_10m` +
-        `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
+        `&hourly=uv_index,pressure_msl,aqi` +
+        `&daily=sunrise,sunset,weather_code,temperature_2m_max,temperature_2m_min` +
         `&timezone=auto&forecast_days=7`;
 
     const response = await fetch(url);
@@ -144,6 +151,110 @@ function displayForecast(data) {
     forecastSection.style.display = 'block';
 }
 
+// ===== Виджет 1: УФ-индекс =====
+function displayUVWidget(data) {
+    const hourly = data.hourly;
+    const currentTime = data.current.time;
+    
+    // Находим текущий индекс UV
+    let uvIndex = 0;
+    const timeIndex = hourly.time.indexOf(currentTime);
+    if (timeIndex !== -1) {
+        uvIndex = hourly.uv_index[timeIndex];
+    }
+
+    // Определяем уровень
+    let level, levelClass, advice;
+    if (uvIndex <= 2) {
+        level = 'Низкий';
+        levelClass = 'uv-low';
+        advice = 'Можно находиться на солнце без защиты.';
+    } else if (uvIndex <= 5) {
+        level = 'Умеренный';
+        levelClass = 'uv-moderate';
+        advice = 'Используйте солнцезащитный крем SPF 30+.';
+    } else if (uvIndex <= 7) {
+        level = 'Высокий';
+        levelClass = 'uv-high';
+        advice = 'Избегайте солнца с 10 до 16 часов.';
+    } else if (uvIndex <= 10) {
+        level = 'Очень высокий';
+        levelClass = 'uv-very-high';
+        advice = 'Минимизируйте пребывание на солнце.';
+    } else {
+        level = 'Экстремальный';
+        levelClass = 'uv-extreme';
+        advice = 'Избегайте выхода на солнце!';
+    }
+
+    document.getElementById('uv-value').textContent = uvIndex.toFixed(1);
+    document.getElementById('uv-level').textContent = level;
+    document.getElementById('uv-level').className = `widget__level ${levelClass}`;
+    document.getElementById('uv-advice').textContent = advice;
+    document.getElementById('uv-bar').style.width = Math.min((uvIndex / 11) * 100, 100) + '%';
+}
+
+// ===== Виджет 2: Восход/Закат =====
+function displaySunWidget(data) {
+    const daily = data.daily;
+    const currentTime = data.current.time;
+    
+    const sunrise = daily.sunrise[0];
+    const sunset = daily.sunset[0];
+    
+    document.getElementById('sunrise').textContent = formatTime(sunrise);
+    document.getElementById('sunset').textContent = formatTime(sunset);
+
+    // Вычисляем прогресс дня
+    const sunriseDate = new Date(sunrise);
+    const sunsetDate = new Date(sunset);
+    const currentDate = new Date(currentTime);
+    
+    const totalDaylight = sunsetDate - sunriseDate;
+    const elapsed = currentDate - sunriseDate;
+    const progress = Math.max(0, Math.min(100, (elapsed / totalDaylight) * 100));
+    
+    document.getElementById('day-progress').style.width = progress + '%';
+    document.getElementById('day-percent').textContent = Math.round(progress) + '%';
+}
+
+// ===== Виджет 3: Качество воздуха =====
+function displayAirWidget(data) {
+    const hourly = data.hourly;
+    const currentTime = data.current.time;
+    
+    // Находим текущий индекс AQI
+    let aqi = 0;
+    const timeIndex = hourly.time.indexOf(currentTime);
+    if (timeIndex !== -1) {
+        aqi = hourly.aqi[timeIndex];
+    }
+
+    // Определяем уровень
+    let level, levelClass;
+    if (aqi <= 25) {
+        level = 'Отличное';
+        levelClass = 'uv-low';
+    } else if (aqi <= 50) {
+        level = 'Хорошее';
+        levelClass = 'uv-moderate';
+    } else if (aqi <= 75) {
+        level = 'Удовлетворительное';
+        levelClass = 'uv-moderate';
+    } else if (aqi <= 100) {
+        level = 'Плохое';
+        levelClass = 'uv-high';
+    } else {
+        level = 'Очень плохое';
+        levelClass = 'uv-very-high';
+    }
+
+    document.getElementById('aqi-value').textContent = aqi;
+    document.getElementById('aqi-level').textContent = level;
+    document.getElementById('aqi-level').className = `widget__level ${levelClass}`;
+    document.getElementById('air-advice').textContent = aqi <= 50 ? 'Отличное качество воздуха для прогулок.' : 'Рекомендуется ограничить пребывание на улице.';
+}
+
 // ===== Основная функция поиска =====
 async function getWeather(city) {
     hideError();
@@ -153,6 +264,10 @@ async function getWeather(city) {
         const weatherData = await fetchWeather(location.lat, location.lon, location.name);
         displayCurrentWeather(weatherData, location.name);
         displayForecast(weatherData);
+        displayUVWidget(weatherData);
+        displaySunWidget(weatherData);
+        displayAirWidget(weatherData);
+        widgetsSection.style.display = 'block';
         emptyState.style.display = 'none';
     } catch (err) {
         showError(err.message || 'Не удалось загрузить погоду');
@@ -177,6 +292,10 @@ function getUserLocation() {
                 const weatherData = await fetchWeather(lat, lon, 'Моё местоположение');
                 displayCurrentWeather(weatherData, 'Моё местоположение');
                 displayForecast(weatherData);
+                displayUVWidget(weatherData);
+                displaySunWidget(weatherData);
+                displayAirWidget(weatherData);
+                widgetsSection.style.display = 'block';
                 emptyState.style.display = 'none';
             } catch (err) {
                 showError(err.message || 'Ошибка получения погоды');

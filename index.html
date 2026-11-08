@@ -61,6 +61,69 @@
                 </div>
             </section>
 
+            <!-- Виджеты погоды -->
+            <section class="widgets" id="widgets" style="display: none;">
+                <h2 class="widgets__title">📊 Детальная информация</h2>
+                <div class="widgets__grid">
+                    <!-- Виджет 1: УФ-индекс -->
+                    <div class="widget" id="widget-uv">
+                        <div class="widget__header">
+                            <span class="widget__icon">☀️</span>
+                            <h3 class="widget__title">УФ-индекс</h3>
+                        </div>
+                        <div class="widget__value" id="uv-value">—</div>
+                        <div class="widget__level" id="uv-level">—</div>
+                        <div class="widget__advice" id="uv-advice"></div>
+                        <div class="widget__bar">
+                            <div class="widget__bar-fill" id="uv-bar"></div>
+                        </div>
+                    </div>
+
+                    <!-- Виджет 2: Восход/Закат -->
+                    <div class="widget" id="widget-sun">
+                        <div class="widget__header">
+                            <span class="widget__icon">🌅</span>
+                            <h3 class="widget__title">Солнечный день</h3>
+                        </div>
+                        <div class="widget__sun-times">
+                            <div class="sun-time">
+                                <span class="sun-time__icon">🌅</span>
+                                <div>
+                                    <div class="sun-time__label">Восход</div>
+                                    <div class="sun-time__value" id="sunrise">—</div>
+                                </div>
+                            </div>
+                            <div class="sun-time">
+                                <span class="sun-time__icon">🌇</span>
+                                <div>
+                                    <div class="sun-time__label">Закат</div>
+                                    <div class="sun-time__value" id="sunset">—</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="widget__day-progress">
+                            <div class="day-progress__label">Прогресс дня</div>
+                            <div class="day-progress__bar">
+                                <div class="day-progress__fill" id="day-progress"></div>
+                            </div>
+                            <div class="day-progress__percent" id="day-percent">0%</div>
+                        </div>
+                    </div>
+
+                    <!-- Виджет 3: Качество воздуха -->
+                    <div class="widget" id="widget-air">
+                        <div class="widget__header">
+                            <span class="widget__icon">💨</span>
+                            <h3 class="widget__title">Качество воздуха</h3>
+                        </div>
+                        <div class="widget__value" id="aqi-value">—</div>
+                        <div class="widget__level" id="aqi-level">—</div>
+                        <div class="widget__air-pollutants" id="air-pollutants"></div>
+                        <div class="widget__advice" id="air-advice"></div>
+                    </div>
+                </div>
+            </section>
+
             <section class="forecast" id="forecast" style="display: none;">
                 <h2 class="forecast__title">Прогноз на 7 дней</h2>
                 <div class="forecast__grid" id="forecast-grid"></div>
