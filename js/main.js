@@ -163,12 +163,70 @@ function displaySunWidget(data) {
     document.getElementById('day-percent').textContent = '50%';
 }
 
-// ===== Виджет 3: Качество воздуха (заглушка) =====
-function displayAirWidget(data) {
-    document.getElementById('aqi-value').textContent = '—';
-    document.getElementById('aqi-level').textContent = 'Недоступно';
-    document.getElementById('aqi-level').className = 'widget__level';
-    document.getElementById('air-advice').textContent = 'Данные о качестве воздуха недоступны.';
+// ===== Получение данных о качестве воздуха =====
+async function fetchAirQuality(lat, lon) {
+    try {
+        const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi,pm10,pm2_5`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Ошибка получения данных');
+        return await response.json();
+    } catch (err) {
+        console.warn('API качества воздуха недоступен:', err);
+        return null;
+    }
+}
+
+// ===== Виджет 3: Качество воздуха =====
+function displayAirWidget(data, airData) {
+    if (!airData || !airData.current) {
+        document.getElementById('aqi-value').textContent = '—';
+        document.getElementById('aqi-level').textContent = 'Недоступно';
+        document.getElementById('aqi-level').className = 'widget__level';
+        document.getElementById('air-advice').textContent = 'Данные о качестве воздуха недоступны.';
+        return;
+    }
+
+    const aqi = Math.round(airData.current.us_aqi);
+    const pm25 = airData.current.pm2_5 ? Math.round(airData.current.pm2_5) : '—';
+    const pm10 = airData.current.pm10 ? Math.round(airData.current.pm10) : '—';
+
+    let level, levelClass, advice;
+    if (aqi <= 50) {
+        level = 'Отличное';
+        levelClass = 'uv-low';
+        advice = 'Отличное качество воздуха для прогулок.';
+    } else if (aqi <= 100) {
+        level = 'Хорошее';
+        levelClass = 'uv-moderate';
+        advice = 'Качество воздуха приемлемое.';
+    } else if (aqi <= 150) {
+        level = 'Умеренное';
+        levelClass = 'uv-moderate';
+        advice = 'Чувствительные люди могут испытывать дискомфорт.';
+    } else if (aqi <= 200) {
+        level = 'Плохое';
+        levelClass = 'uv-high';
+        advice = 'Рекомендуется ограничить пребывание на улице.';
+    } else {
+        level = 'Очень плохое';
+        levelClass = 'uv-very-high';
+        advice = 'Избегайте нахождения на открытом воздухе!';
+    }
+
+    document.getElementById('aqi-value').textContent = aqi;
+    document.getElementById('aqi-level').textContent = level;
+    document.getElementById('aqi-level').className = `widget__level ${levelClass}`;
+    document.getElementById('air-advice').textContent = advice;
+    document.getElementById('air-pollutants').innerHTML = `
+        <div class="pollutant">
+            <span class="pollutant__name">PM2.5</span>
+            <span class="pollutant__value">${pm25} мкг/м³</span>
+        </div>
+        <div class="pollutant">
+            <span class="pollutant__name">PM10</span>
+            <span class="pollutant__value">${pm10} мкг/м³</span>
+        </div>
+    `;
 }
 
 // ===== Основная функция поиска =====
@@ -192,11 +250,22 @@ async function getWeather(city) {
         
         const data = await response.json();
         
+        // Получаем координаты для качества воздуха
+        const lat = data.location.lat;
+        const lon = data.location.lon;
+        
+        // Параллельно запрашиваем качество воздуха
+        const airPromise = fetchAirQuality(lat, lon);
+        
         displayCurrentWeather(data);
         displayForecast(data);
         displayUVWidget(data);
         displaySunWidget(data);
-        displayAirWidget(data);
+        
+        // Ждём данные о качестве воздуха
+        const airData = await airPromise;
+        displayAirWidget(data, airData);
+        
         widgetsSection.style.display = 'block';
         emptyState.style.display = 'none';
         
@@ -225,11 +294,17 @@ function getUserLocation() {
                 const response = await fetch(url);
                 const data = await response.json();
                 
+                // Получаем качество воздуха
+                const airPromise = fetchAirQuality(lat, lon);
+                
                 displayCurrentWeather(data);
                 displayForecast(data);
                 displayUVWidget(data);
                 displaySunWidget(data);
-                displayAirWidget(data);
+                
+                const airData = await airPromise;
+                displayAirWidget(data, airData);
+                
                 widgetsSection.style.display = 'block';
                 emptyState.style.display = 'none';
             } catch (err) {
